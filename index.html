@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจดหมายข่าว</title> <!-- เปลี่ยนหัวข้อ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#006B5E',
+                        secondary: '#008B7A',
+                        light: '#e6f7f5',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Sarabun', sans-serif;
+        }
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        .modal-active {
+            overflow-y: visible !important;
+            overflow-x: hidden;
+        }
+        .pagination-btn.active {
+            background-color: #006B5E;
+            color: white;
+        }
+        .thumbnail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        @media (min-width: 768px) {
+            .thumbnail-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        @media (min-width: 1024px) {
+            .thumbnail-grid {
+                grid-template-columns: repeat(6, 1fr);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <img src="https://lh3.googleusercontent.com/d/1awB3p2ba9fwnhrzzOEu_qYLLhLp_VmGd" alt="โลโก้โรงเรียน" class="h-14">
+                <div>
+                    <h1 class="text-2xl font-bold">ระบบจดหมายข่าว</h1> <!-- เปลี่ยนหัวข้อ -->
+                    <p class="text-sm">โรงเรียนบ้านทุ่งใคร สังกัดสำนักงานเขตพื้นที่การศึกษานครศรีธรรมราช เขต 3 </p> <!-- เปลี่ยนชื่อโรงเรียน -->
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <!-- ปุ่มเข้าสู่ระบบเจ้าหน้าที่ -->
+                <button id="staffLoginBtn" class="bg-white text-primary hover:bg-light px-4 py-2 rounded-md font-medium flex items-center">
+                    <i class="fas fa-user-lock mr-2"></i> เข้าสู่ระบบเจ้าหน้าที่
+                </button>
+                <button id="staffLogoutBtn" class="bg-white text-primary hover:bg-light px-4 py-2 rounded-md font-medium flex items-center">
+                    <i class="fas fa-user-lock mr-2"></i> ออกจากระบบ
+                </button>
+                <!-- ปุ่มเพิ่มจดหมายข่าว - จะถูกแสดง/ซ่อนด้วย JavaScript -->
+                <button id="addNewsletterBtn" class="bg-white text-primary hover:bg-light px-4 py-2 rounded-md font-medium flex items-center hidden">
+                    <i class="fas fa-plus mr-2"></i> เพิ่มจดหมายข่าว
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex flex-col md:flex-row gap-4 md:items-center flex-1">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหา</label>
+                        <input type="text" id="searchInput" placeholder="ค้นหาจากฉบับที่, หัวข้อข่าว..." 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="w-full md:w-48">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">วันที่เริ่มต้น</label>
+                        <input type="date" id="startDate" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    <div class="w-full md:w-48">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">วันที่สิ้นสุด</label>
+                        <input type="date" id="endDate" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                </div>
+                <div class="flex items-end">
+                    <button id="searchBtn" class="bg-primary text-white hover:bg-secondary px-4 py-2 rounded-md font-medium">
+                        <i class="fas fa-search mr-2"></i> ค้นหา
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Year Filter Tabs -->
+        <div class="mb-6 overflow-x-auto">
+            <div class="inline-flex space-x-1 bg-white rounded-lg shadow p-1 min-w-full" id="yearTabsContainer">
+                <button class="year-tab px-4 py-2 rounded-md font-medium bg-primary text-white" data-year="all">ทั้งหมด</button>
+                <!-- Year tabs will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Newsletter Table -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-primary text-white">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-medium">ที่</th>
+                            <!-- <th scope="col" class="px-6 py-3 text-left text-sm font-medium">รูปภาพ</th> --> <!-- ลบคอลัมน์รูปภาพ -->
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-medium">ชื่อจดหมายข่าว</th>
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-medium">หัวข้อข่าว</th>
+                            <th scope="col" class="px-6 py-3 text-left text-sm font-medium">วันที่</th>
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-medium">ดูจดหมายข่าว</th>
+                            <th scope="col" class="px-6 py-3 text-center text-sm font-medium">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="newsletterTableBody">
+                        <!-- Sample data -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Table Footer -->
+            <div class="px-6 py-4 flex flex-col sm:flex-row justify-between items-center bg-gray-50">
+                <div class="flex items-center mb-4 sm:mb-0">
+                    <span class="text-sm text-gray-700 mr-2">แสดง</span>
+                    <select id="rowsPerPage" class="border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="text-sm text-gray-700 ml-2">รายการ</span>
+                </div>
+                <div class="flex items-center space-x-1" id="paginationControls">
+                    <!-- Pagination buttons will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Newsletter Thumbnails -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-primary mb-4">จดหมายข่าวล่าสุด</h2>
+            <div class="thumbnail-grid" id="newsletterThumbnails">
+                <!-- Thumbnails will be inserted here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Staff Login Modal -->
+    <div id="staffLoginModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+        <div class="modal-container bg-white w-11/12 md:max-w-sm mx-auto rounded-lg shadow-lg z-50 overflow-y-auto max-h-[90vh]">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-xl font-bold text-primary">เข้าสู่ระบบเจ้าหน้าที่</p>
+                    <button class="modal-close-staff-login cursor-pointer z-50">
+                        <i class="fas fa-times text-gray-500 hover:text-gray-700"></i>
+                    </button>
+                </div>
+
+                
+                <form id="staffLoginForm" class="space-y-4">
+                    <div>
+                        <label for="staffPassword" class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+                        <input type="password" id="staffPassword" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="button" id="staffLogoutBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md mr-2 hidden">
+                            <i class="fas fa-sign-out-alt mr-2"></i> ออกจากระบบ
+                        </button>
+                        <button type="submit" id="loginSubmitBtn" class="bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md">
+                            เข้าสู่ระบบ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Add/Edit Newsletter Modal -->
+    <div id="newsletterModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+        
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg z-50 overflow-y-auto max-h-[90vh]">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-xl font-bold text-primary" id="modalTitle">เพิ่มจดหมายข่าว</p>
+                    <button class="modal-close cursor-pointer z-50">
+                        <i class="fas fa-times text-gray-500 hover:text-gray-700"></i>
+                    </button>
+                </div>
+
+                <form id="newsletterForm" class="space-y-4">
+                    <input type="hidden" id="newsletterId">
+                    
+                    <!-- Issue Number, Month, Year -->
+                    <div class="flex space-x-4">
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ฉบับที่</label>
+                            <input type="number" id="issueNumber" name="issueNumber" required placeholder="ตัวเลขเท่านั้น" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">เดือน</label>
+                            <select id="issueMonth" name="issueMonth" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="">เลือกเดือน</option>
+                                <option value="มกราคม">มกราคม</option>
+                                <option value="กุมภาพันธ์">กุมภาพันธ์</option>
+                                <option value="มีนาคม">มีนาคม</option>
+                                <option value="เมษายน">เมษายน</option>
+                                <option value="พฤษภาคม">พฤษภาคม</option>
+                                <option value="มิถุนายน">มิถุนายน</option>
+                                <option value="กรกฎาคม">กรกฎาคม</option>
+                                <option value="สิงหาคม">สิงหาคม</option>
+                                <option value="กันยายน">กันยายน</option>
+                                <option value="ตุลาคม">ตุลาคม</option>
+                                <option value="พฤศจิกายน">พฤศจิกายน</option>
+                                <option value="ธันวาคม">ธันวาคม</option>
+                            </select>
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">ปี (พ.ศ.)</label>
+                            <input type="number" id="issueYear" name="issueYear" required placeholder="เช่น 2568" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">หัวข้อข่าว</label>
+                        <input type="text" id="newsletterSubject" name="newsletterSubject" required placeholder="หัวข้อหลักของจดหมายข่าว" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">อัปโหลดภาพ</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col w-full h-32 border-2 border-dashed border-gray-300 rounded-lg hover:bg-gray-50 hover:border-primary cursor-pointer">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6" id="uploadPlaceholder">
+                                    <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-2"></i>
+                                    <p class="text-sm text-gray-500">คลิกเพื่อเลือกไฟล์ หรือลากไฟล์มาวาง</p>
+                                    <p class="text-xs text-gray-500">รองรับไฟล์ JPG, JPEG, PNG</p>
+                                </div>
+                                <div class="hidden flex-col items-center justify-center pt-5 pb-6" id="previewContainer">
+                                    <img id="imagePreview" class="max-h-24 object-contain mb-2">
+                                    <p class="text-xs text-gray-500" id="fileNameDisplay"></p>
+                                </div>
+                                <input id="fileUpload" type="file" class="hidden" accept=".jpg,.jpeg,.png">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="flex justify-end pt-2">
+                        <button type="button" class="modal-close bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md mr-2">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" class="bg-primary hover:bg-secondary text-white font-medium py-2 px-4 rounded-md">
+                            <span id="submitBtnText">บันทึก</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"></div>
+        
+        <div class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg z-50 overflow-y-auto">
+            <div class="modal-content py-4 text-left px-6">
+                <div class="flex justify-between items-center pb-3">
+                    <p class="text-xl font-bold text-red-600">ยืนยันการลบ</p>
+                    <button class="modal-close cursor-pointer z-50">
+                        <i class="fas fa-times text-gray-500 hover:text-gray-700"></i>
+                    </button>
+                </div>
+
+                <p class="text-gray-700 mb-6">คุณต้องการลบจดหมายข่าวนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้</p>
+
+                <div class="flex justify-end pt-2">
+                    <button class="modal-close bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-md mr-2">
+                        ยกเลิก
+                    </button>
+                    <button id="confirmDeleteBtn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md">
+                        ลบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set this to your deployed Apps Script Web App URL
+        // *** โปรดแทนที่ 'YOUR_WEB_APP_URL_HERE' ด้วย URL จริงจาก Apps Script Web App ของคุณ ***
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbw8siuKvB9KlsBCMz8nEL75PqTR3DeYZnIamKgVFz96SP0AQrmc0JQq7kSjwo1vygSegQ/exec'; 
+
+        // DOM Elements
+        const newsletterTableBody = document.getElementById('newsletterTableBody');
+        const newsletterThumbnails = document.getElementById('newsletterThumbnails');
+        const newsletterModal = document.getElementById('newsletterModal');
+        const deleteModal = document.getElementById('deleteModal');
+        const newsletterForm = document.getElementById('newsletterForm');
+        const issueNumberInput = document.getElementById('issueNumber');
+        const issueMonthSelect = document.getElementById('issueMonth');
+        const issueYearInput = document.getElementById('issueYear');
+        const newsletterSubjectInput = document.getElementById('newsletterSubject'); 
+        const fileUpload = document.getElementById('fileUpload');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadPlaceholder = document.getElementById('uploadPlaceholder');
+        const previewContainer = document.getElementById('previewContainer');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const yearTabsContainer = document.getElementById('yearTabsContainer');
+        const searchInput = document.getElementById('searchInput');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const searchBtn = document.getElementById('searchBtn');
+        const rowsPerPageSelect = document.getElementById('rowsPerPage');
+        const addNewsletterBtn = document.getElementById('addNewsletterBtn'); 
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const paginationControls = document.getElementById('paginationControls');
+
+        // New Staff Login DOM Elements
+        const staffLoginBtn = document.getElementById('staffLoginBtn');
+        const staffLoginModal = document.getElementById('staffLoginModal');
+        const staffLoginForm = document.getElementById('staffLoginForm');
+        const staffPasswordInput = document.getElementById('staffPassword');
+        const staffLogoutBtn = document.getElementById('staffLogoutBtn');
+        const loginSubmitBtn = document.getElementById('loginSubmitBtn');
+
+
+        // Current state
+        let allNewsletters = []; 
+        let filteredNewsletters = []; 
+        let currentYear = 'all';
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let currentEditId = null;
+        let deleteId = null;
+        let selectedFile = null; 
+
+        // Hardcoded staff password (Client-side only)
+        const STAFF_PASSWORD = "Kwschool";
+        let isStaffLoggedIn = false; // Initial state
+
+        // Months array for mapping month names (for parsing and display)
+        const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+        const monthMap = {
+            "มกราคม": 0, "กุมภาพันธ์": 1, "มีนาคม": 2, "เมษายน": 3,
+            "พฤษภาคม": 4, "มิถุนายน": 5, "กรกฎาคม": 6, "สิงหาคม": 7,
+            "กันยายน": 8, "ตุลาคม": 9, "พฤศจิกายน": 10, "ธันวาคม": 11
+        };
+
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // ALWAYS reset UI on load if not using sessionStorage
+            updateStaffUI(false); // Make sure UI is reset to logged out state on every load
+            
+            fetchAndRenderNewsletters();
+            setupEventListeners();
+        });
+
+        // Function to update UI based on staff login status
+        function updateStaffUI(loggedIn) {
+            isStaffLoggedIn = loggedIn;
+            if (loggedIn) {
+                addNewsletterBtn.classList.remove('hidden');
+                staffLoginBtn.classList.add('hidden');
+                staffLogoutBtn.classList.remove('hidden'); // Show logout button in modal
+                loginSubmitBtn.classList.add('hidden'); // Hide login button in modal
+            } else {
+                addNewsletterBtn.classList.add('hidden');
+                staffLoginBtn.classList.remove('hidden');
+                staffLogoutBtn.classList.add('hidden'); // Hide logout button in modal
+                loginSubmitBtn.classList.remove('hidden'); // Show login button in modal
+            }
+            renderNewslettersTable(); // Re-render table to show/hide edit/delete buttons
+        }
+
+
+        // Fetch data from Google Sheet
+        async function fetchAndRenderNewsletters() {
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=getNewsletters`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                allNewsletters = await response.json();
+                
+                // Convert ID and Date to appropriate types
+                allNewsletters = allNewsletters.map(nl => ({
+                    ...nl,
+                    ID: parseInt(nl.ID),
+                    Date: nl.Date // Keep as string for display and comparison
+                }));
+
+                populateYearTabs();
+                filterNewsletters(); 
+                renderThumbnails();
+            } catch (error) {
+                console.error('Error fetching newsletters:', error);
+                alert('ไม่สามารถโหลดข้อมูลจดหมายข่าวได้ กรุณาลองใหม่อีกครั้ง');
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            staffLoginBtn.addEventListener('click', openStaffLoginModal);
+            staffLoginForm.addEventListener('submit', handleStaffLogin);
+            staffLogoutBtn.addEventListener('click', handleStaffLogout);
+
+
+            addNewsletterBtn.addEventListener('click', openAddModal);
+            document.querySelectorAll('.modal-close').forEach(btn => {
+                btn.addEventListener('click', closeModals);
+            });
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', closeModals);
+            });
+            // New close button for staff login modal
+            document.querySelectorAll('.modal-close-staff-login').forEach(btn => {
+                btn.addEventListener('click', closeModals);
+            });
+
+
+            newsletterForm.addEventListener('submit', handleFormSubmit);
+            fileUpload.addEventListener('change', handleFileSelect);
+            searchInput.addEventListener('input', filterNewsletters); 
+            startDateInput.addEventListener('change', filterNewsletters);
+            endDateInput.addEventListener('change', filterNewsletters);
+            searchBtn.addEventListener('click', filterNewsletters); 
+            rowsPerPageSelect.addEventListener('change', () => {
+                itemsPerPage = parseInt(rowsPerPage.value);
+                currentPage = 1;
+                renderNewslettersTable();
+                renderPaginationButtons();
+            });
+            confirmDeleteBtn.addEventListener('click', confirmDelete);
+        }
+
+        // Populate Year Tabs
+        function populateYearTabs() {
+            const years = new Set(allNewsletters.map(nl => new Date(nl.Date).getFullYear().toString()));
+            const sortedYears = Array.from(years).sort((a, b) => parseInt(b) - parseInt(a)); // เรียงจากปีล่าสุดไปปีเก่า
+
+            // ลบปุ่มปีเดิม (ยกเว้น "ทั้งหมด")
+            yearTabsContainer.querySelectorAll('.year-tab:not([data-year="all"])').forEach(tab => tab.remove());
+
+            // ตั้งค่าให้แสดง "ปีล่าสุด"
+            currentYear = sortedYears[0]; // 👉 ปี ค.ศ. ล่าสุด เช่น 2024
+
+            // สร้างปุ่มปีทั้งหมด
+            sortedYears.forEach((year, index) => {
+                const button = document.createElement('button');
+                button.className = 'year-tab px-4 py-2 rounded-md font-medium text-gray-700 hover:bg-light';
+                button.dataset.year = year;
+                button.textContent = parseInt(year) + 543; // แสดง พ.ศ.
+
+                // ปุ่มแรก (ปีล่าสุด) ให้มีพื้นหลัง
+                if (index === 0) {
+                    button.classList.add('bg-primary', 'text-white');
+                }
+
+                button.addEventListener('click', () => {
+                    // ลบ active ปุ่มอื่น
+                    yearTabsContainer.querySelectorAll('.year-tab').forEach(t => t.classList.remove('bg-primary', 'text-white'));
+                    button.classList.add('bg-primary', 'text-white');
+
+                    // ตั้งค่า currentYear ตามปุ่มที่คลิก
+                    currentYear = year;
+
+                    // เรียกฟังก์ชันแสดงผล
+                    filterNewsletters();     // ตาราง
+                    renderThumbnails();      // รูปภาพขนาดย่อ
+                });
+
+                yearTabsContainer.appendChild(button);
+            });
+
+            // เรียกฟังก์ชันตอนเริ่มต้นเพื่อแสดงปีล่าสุด
+            filterNewsletters();
+        }
+
+        // Render newsletters table
+        function renderNewslettersTable() {
+            newsletterTableBody.innerHTML = '';
+            
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const paginatedItems = filteredNewsletters.slice(start, end);
+            
+            if (paginatedItems.length === 0) {
+                // เปลี่ยน colspan จาก 7 เป็น 6 เนื่องจากลบคอลัมน์รูปภาพออก
+                newsletterTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">ไม่พบข้อมูลจดหมายข่าว</td>
+                    </tr>
+                `;
+                renderPaginationButtons(); 
+                return;
+            }
+            
+            paginatedItems.forEach((newsletter, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                
+                const dateParts = newsletter.Date.split('-'); 
+                const formattedDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).toLocaleDateString('th-TH', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${start + index + 1}</td>
+                    <!-- ลบคอลัมน์รูปภาพออกจาก tbody -->
+                    <td class="px-6 py-4 text-sm text-gray-900">${newsletter.Name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${newsletter.Title}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${formattedDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <a href="${newsletter.ImageUrl}" target="_blank" class="view-btn bg-primary text-white hover:bg-secondary px-3 py-1 rounded-md text-xs">
+                            <i class="fas fa-eye mr-1"></i> ดู
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <!-- ปุ่มจัดการ (แก้ไข/ลบ) - แสดงตามสถานะการล็อกอิน -->
+                        <div class="action-buttons ${isStaffLoggedIn ? '' : 'hidden'}"> 
+                            <button class="edit-btn text-blue-600 hover:text-blue-800 mr-2" data-id="${newsletter.ID}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-btn text-red-600 hover:text-red-800" data-id="${newsletter.ID}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                newsletterTableBody.appendChild(row);
+            });
+            
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+            });
+            
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => openDeleteModal(btn.dataset.id));
+            });
+
+            renderPaginationButtons();
+        }
+
+        // Render pagination buttons
+        function renderPaginationButtons() {
+            paginationControls.innerHTML = '';
+            const totalPages = Math.ceil(filteredNewsletters.length / itemsPerPage);
+
+            const createButton = (text, page, isDisabled = false, isActive = false) => {
+                const button = document.createElement('button');
+                button.className = `pagination-btn px-3 py-1 rounded-md border border-gray-300 ${isActive ? 'active' : 'hover:bg-light'} ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`;
+                button.innerHTML = text;
+                button.disabled = isDisabled;
+                if (!isDisabled) {
+                    button.addEventListener('click', () => {
+                        currentPage = page;
+                        renderNewslettersTable();
+                    });
+                }
+                return button;
+            };
+
+            paginationControls.appendChild(createButton('<i class="fas fa-angle-double-left"></i>', 1, currentPage === 1));
+            paginationControls.appendChild(createButton('<i class="fas fa-angle-left"></i>', Math.max(1, currentPage - 1), currentPage === 1));
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, currentPage + 2);
+
+            if (endPage - startPage < 4) {
+                if (startPage === 1) {
+                    endPage = Math.min(totalPages, startPage + 4);
+                } else if (endPage === totalPages) {
+                    startPage = Math.max(1, endPage - 4);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationControls.appendChild(createButton(i.toString(), i, false, i === currentPage));
+            }
+
+            paginationControls.appendChild(createButton('<i class="fas fa-angle-right"></i>', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
+            paginationControls.appendChild(createButton('<i class="fas fa-angle-double-right"></i>', totalPages, currentPage === totalPages));
+        }
+
+        // Render thumbnails (section below table)
+        function renderThumbnails() {
+            newsletterThumbnails.innerHTML = '';
+
+            const yearFiltered = currentYear !== 'all'
+                ? filteredNewsletters.filter(nl => new Date(nl.Date).getFullYear().toString() === currentYear)
+                : filteredNewsletters;
+
+            if (yearFiltered.length === 0) {
+                newsletterThumbnails.innerHTML = `<p class="text-gray-500 text-center">ไม่พบจดหมายข่าวในปีที่เลือก</p>`;
+                return;
+            }
+
+            yearFiltered.forEach(newsletter => {
+                const imageUrlToDisplay = newsletter.ImageUrl ? newsletter.ImageUrl : 'https://placehold.co/800x1100/006B5E/FFFFFF?text=No+Image';
+                const thumbnail = document.createElement('div');
+                thumbnail.className = 'flex flex-col items-center';
+                thumbnail.innerHTML = `
+                    <div class="relative w-full aspect-[210/297] mb-2 overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer">
+                        <img src="${imageUrlToDisplay}" alt="${newsletter.Name}" onerror="this.onerror=null;this.src='https://placehold.co/800x1100/006B5E/FFFFFF?text=No+Image';" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-opacity flex flex-col items-center justify-center space-y-2">
+                            <a href="${newsletter.ImageUrl}" target="_blank" class="view-thumbnail-btn opacity-0 hover:opacity-100 bg-primary text-white hover:bg-secondary px-3 py-1 rounded-md text-sm">
+                                <i class="fas fa-eye mr-1"></i> ดู
+                            </a>
+                        </div>
+                    </div>
+                    <p class="text-sm text-center font-medium text-gray-800">${newsletter.Name}</p>
+                `;
+                newsletterThumbnails.appendChild(thumbnail);
+
+                thumbnail.querySelector('img').addEventListener('click', () => {
+                    window.open(newsletter.ImageUrl, '_blank');
+                });
+            });
+        }
+
+        // Filter newsletters
+        function filterNewsletters() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const startDateValue = startDateInput.value ? new Date(startDateInput.value) : null;
+            const endDateValue = endDateInput.value ? new Date(endDateInput.value) : null;
+            
+            filteredNewsletters = allNewsletters.filter(newsletter => {
+                // Filter by year
+                if (currentYear !== 'all') {
+                    const newsletterYear = new Date(newsletter.Date).getFullYear().toString();
+                    if (newsletterYear !== currentYear) return false;
+                }
+                
+                // Filter by search term
+                if (searchTerm && 
+                    !(newsletter.Name && newsletter.Name.toLowerCase().includes(searchTerm)) && 
+                    !(newsletter.Title && newsletter.Title.toLowerCase().includes(searchTerm)) &&
+                    !(newsletter.ID && newsletter.ID.toString().includes(searchTerm))
+                ) {
+                    return false;
+                }
+                
+                // Filter by date range
+                const newsletterDate = new Date(newsletter.Date);
+                if (startDateValue) startDateValue.setHours(0,0,0,0);
+                if (endDateValue) endDateValue.setHours(23,59,59,999);
+
+                if (startDateValue && newsletterDate < startDateValue) return false;
+                if (endDateValue && newsletterDate > endDateValue) return false;
+                
+                return true;
+            });
+            
+            filteredNewsletters.sort((a, b) => {
+                const dateA = new Date(a.Date);
+                const dateB = new Date(b.Date);
+                if (dateB.getTime() !== dateA.getTime()) {
+                    return dateB.getTime() - dateA.getTime();
+                }
+
+                const yearMatchA = a.Name.match(/ปี (\d+)/);
+                const yearA = yearMatchA ? parseInt(yearMatchA[1]) : 0;
+                const yearMatchB = b.Name.match(/ปี (\d+)/);
+                const yearB = yearMatchB ? parseInt(yearMatchB[1]) : 0;
+                if (yearB !== yearA) {
+                    return yearB - yearA;
+                }
+
+                const monthMatchA = a.Name.match(/ประจำเดือน (.+?) ปี/);
+                const monthA = monthMatchA ? monthMap[monthMatchA[1]] : -1;
+                const monthMatchB = b.Name.match(/ประจำเดือน (.+?) ปี/);
+                const monthB = monthMatchB ? monthMap[monthMatchB[1]] : -1;
+                if (monthB !== monthA) {
+                    return monthB - monthA;
+                }
+
+                const issueMatchA = a.Name.match(/ฉบับที่ (\d+)/);
+                const issueA = issueMatchA ? parseInt(issueMatchA[1]) : 0;
+                const issueMatchB = b.Name.match(/ฉบับที่ (\d+)/);
+                const issueB = issueMatchB ? parseInt(issueMatchB[1]) : 0;
+                return issueB - issueA;
+            });
+            
+            currentPage = 1;
+            renderNewslettersTable();
+        }
+
+        // Modal functions
+        function openAddModal() {
+            if (!isStaffLoggedIn) {
+                alert('เฉพาะเจ้าหน้าที่เท่านั้นที่มีสิทธิ์เพิ่มจดหมายข่าว');
+                return;
+            }
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'เพิ่มจดหมายข่าว';
+            document.getElementById('submitBtnText').textContent = 'บันทึก';
+            newsletterForm.reset();
+            issueYearInput.value = new Date().getFullYear() + 543;
+            selectedFile = null; 
+            uploadPlaceholder.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            imagePreview.src = '';
+            fileNameDisplay.textContent = '';
+            fileUpload.value = ''; 
+            
+            newsletterModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function openEditModal(id) {
+            if (!isStaffLoggedIn) {
+                alert('เฉพาะเจ้าหน้าที่เท่านั้นที่มีสิทธิ์แก้ไขจดหมายข่าว');
+                return;
+            }
+            const newsletter = allNewsletters.find(n => n.ID == id);
+            if (!newsletter) return;
+            
+            currentEditId = id;
+            document.getElementById('modalTitle').textContent = 'แก้ไขจดหมายข่าว';
+            document.getElementById('submitBtnText').textContent = 'บันทึกการแก้ไข';
+            
+            document.getElementById('newsletterId').value = newsletter.ID;
+            const nameParts = newsletter.Name.match(/ฉบับที่ (\d+) ประจำเดือน (.+) ปี (\d+)/);
+            if (nameParts) {
+                issueNumberInput.value = nameParts[1];
+                issueMonthSelect.value = nameParts[2]; 
+                issueYearInput.value = nameParts[3]; 
+            }
+            newsletterSubjectInput.value = newsletter.Title; 
+            
+            // ใช้ URL จาก Apps Script เป็นตัวกลางสำหรับการแสดงผลใน img tag สำหรับ Preview ใน Modal
+            if (newsletter.DriveFileId) {
+                imagePreview.src = `${WEB_APP_URL}?action=getImage&fileId=${newsletter.DriveFileId}`;
+                fileNameDisplay.textContent = 'ไฟล์ปัจจุบัน';
+                uploadPlaceholder.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+            } else {
+                uploadPlaceholder.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+            }
+            fileUpload.value = ''; 
+            selectedFile = null; 
+            
+            newsletterModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function openDeleteModal(id) {
+            if (!isStaffLoggedIn) {
+                alert('เฉพาะเจ้าหน้าที่เท่านั้นที่มีสิทธิ์ลบจดหมายข่าว');
+                return;
+            }
+            deleteId = id;
+            deleteModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            });
+            document.body.classList.remove('modal-active');
+            selectedFile = null; 
+            fileUpload.value = ''; 
+            uploadPlaceholder.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            imagePreview.src = '';
+            fileNameDisplay.textContent = '';
+            // Clear password field on modal close
+            staffPasswordInput.value = ''; 
+        }
+
+        // Form submission handling
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const issueNumber = issueNumberInput.value;
+            const issueMonth = issueMonthSelect.value;
+            const issueYear = issueYearInput.value;
+            const newsletterSubject = newsletterSubjectInput.value; 
+
+            const newsletterName = `ฉบับที่ ${issueNumber} ประจำเดือน ${issueMonth} ปี ${issueYear}`;
+
+            const formData = new FormData();
+            formData.append('newsletterName', newsletterName);
+            formData.append('newsletterTitle', newsletterSubject); 
+
+            const submitBtn = document.querySelector('#newsletterForm button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังบันทึก...';
+
+            try {
+                if (selectedFile) {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(selectedFile);
+                    await new Promise((resolve) => {
+                        reader.onloadend = () => {
+                            formData.append('file', reader.result.split(',')[1]); 
+                            formData.append('fileName', selectedFile.name);
+                            formData.append('fileType', selectedFile.type);
+                            resolve();
+                        };
+                    });
+                }
+                
+                let action = currentEditId ? 'editNewsletter' : 'addNewsletter';
+                if (currentEditId) {
+                    formData.append('newsletterId', currentEditId);
+                }
+
+                const response = await fetch(`${WEB_APP_URL}?action=${action}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    alert(result.message);
+                    await fetchAndRenderNewsletters(); 
+                    closeModals();
+                } else {
+                    alert('เกิดข้อผิดพลาด: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        }
+
+        // File handling
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                selectedFile = null;
+                uploadPlaceholder.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                imagePreview.src = '';
+                fileNameDisplay.textContent = '';
+                return;
+            }
+            
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('กรุณาเลือกไฟล์รูปภาพ JPG, JPEG หรือ PNG เท่านั้น');
+                fileUpload.value = '';
+                selectedFile = null;
+                uploadPlaceholder.classList.remove('hidden');
+                previewContainer.classList.add('hidden');
+                imagePreview.src = '';
+                fileNameDisplay.textContent = '';
+                return;
+            }
+            
+            selectedFile = file; 
+
+            imagePreview.src = URL.createObjectURL(file);
+            fileNameDisplay.textContent = file.name;
+            uploadPlaceholder.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+        }
+
+        // Delete newsletter
+        async function confirmDelete() {
+            if (!deleteId) return;
+            
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            const originalBtnText = deleteBtn.innerHTML;
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> กำลังลบ...';
+
+            try {
+                const response = await fetch(`${WEB_APP_URL}?action=deleteNewsletter&newsletterId=${deleteId}`, {
+                    method: 'POST' 
+                });
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    alert(result.message);
+                    await fetchAndRenderNewsletters(); 
+                    closeModals();
+                } else {
+                    alert('เกิดข้อผิดพลาดในการลบ: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting newsletter:', error);
+                alert('ไม่สามารถลบจดหมายข่าวได้ กรุณาลองใหม่อีกครั้ง');
+            } finally {
+                deleteBtn.disabled = false;
+                deleteBtn.innerHTML = originalBtnText;
+            }
+        }
+
+        // Staff Login Functions
+        function openStaffLoginModal() {
+            staffLoginModal.classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+            // Hide login button and show logout if already logged in
+            if (isStaffLoggedIn) {
+                loginSubmitBtn.classList.add('hidden');
+                staffLogoutBtn.classList.remove('hidden');
+            } else {
+                loginSubmitBtn.classList.remove('hidden');
+                staffLogoutBtn.classList.add('hidden');
+            }
+            staffPasswordInput.focus(); // Focus on password input
+        }
+
+        function handleStaffLogin(e) {
+            e.preventDefault();
+            const password = staffPasswordInput.value;
+            if (password === STAFF_PASSWORD) {
+                isStaffLoggedIn = true;
+                // sessionStorage.setItem('isStaffLoggedIn', 'true'); // REMOVED: No persistence on refresh
+                updateStaffUI(true);
+                closeModals();
+                alert('เข้าสู่ระบบเจ้าหน้าที่เรียบร้อยแล้ว');
+            } else {
+                alert('รหัสผ่านไม่ถูกต้อง');
+                staffPasswordInput.value = ''; // Clear password on wrong attempt
+                staffPasswordInput.focus();
+            }
+        }
+
+        function handleStaffLogout() {
+            isStaffLoggedIn = false;
+            // sessionStorage.removeItem('isStaffLoggedIn'); // REMOVED: No persistence on refresh
+            updateStaffUI(false);
+            closeModals();
+            alert('ออกจากระบบเจ้าหน้าที่เรียบร้อยแล้ว');
+        }
+
+        // Populate Year Tabs
+function populateYearTabs() {
+    const years = new Set(allNewsletters.map(nl => new Date(nl.Date).getFullYear().toString()));
+    const sortedYears = Array.from(years).sort((a, b) => parseInt(b) - parseInt(a)); // เรียงจากปีล่าสุดไปปีเก่า
+
+    // ลบปุ่มปีเดิม (ยกเว้น "ทั้งหมด")
+    yearTabsContainer.querySelectorAll('.year-tab:not([data-year="all"])').forEach(tab => tab.remove());
+
+    // รีเซ็ตปุ่ม "ทั้งหมด" ให้เป็นสีเทาก่อน
+    const allButton = yearTabsContainer.querySelector('[data-year="all"]');
+    allButton.classList.remove('bg-primary', 'text-white');
+    allButton.classList.add('text-gray-700', 'hover:bg-light');
+    
+    // เพิ่ม event listener ให้ปุ่ม "ทั้งหมด" (ถ้ายังไม่มี)
+    if (!allButton.hasAttribute('data-listener-added')) {
+        allButton.addEventListener('click', () => {
+            // ลบ active ปุ่มอื่น
+            yearTabsContainer.querySelectorAll('.year-tab').forEach(t => {
+                t.classList.remove('bg-primary', 'text-white');
+                t.classList.add('text-gray-700', 'hover:bg-light');
+            });
+            // เพิ่ม active ให้ปุ่ม "ทั้งหมด"
+            allButton.classList.add('bg-primary', 'text-white');
+            allButton.classList.remove('text-gray-700', 'hover:bg-light');
+
+            // ตั้งค่า currentYear
+            currentYear = 'all';
+
+            // เรียกฟังก์ชันแสดงผล
+            filterNewsletters();
+            renderThumbnails();
+        });
+        allButton.setAttribute('data-listener-added', 'true');
+    }
+
+    // ตั้งค่าให้แสดง "ปีล่าสุด" แทน "ทั้งหมด"
+    if (sortedYears.length > 0) {
+        currentYear = sortedYears[0]; // 👉 ปี ค.ศ. ล่าสุด เช่น 2024
+    } else {
+        currentYear = 'all'; // ถ้าไม่มีข้อมูล ให้แสดงทั้งหมด
+    }
+
+    // สร้างปุ่มปีทั้งหมด
+    sortedYears.forEach((year, index) => {
+        const button = document.createElement('button');
+        button.className = 'year-tab px-4 py-2 rounded-md font-medium text-gray-700 hover:bg-light';
+        button.dataset.year = year;
+        button.textContent = parseInt(year) + 543; // แสดง พ.ศ.
+
+        // ปุ่มแรก (ปีล่าสุด) ให้มีพื้นหลัง
+        if (index === 0) {
+            button.classList.remove('text-gray-700', 'hover:bg-light');
+            button.classList.add('bg-primary', 'text-white');
+        }
+
+        button.addEventListener('click', () => {
+            // ลบ active ปุ่มอื่น
+            yearTabsContainer.querySelectorAll('.year-tab').forEach(t => {
+                t.classList.remove('bg-primary', 'text-white');
+                t.classList.add('text-gray-700', 'hover:bg-light');
+            });
+            // เพิ่ม active ให้ปุ่มที่คลิก
+            button.classList.remove('text-gray-700', 'hover:bg-light');
+            button.classList.add('bg-primary', 'text-white');
+
+            // ตั้งค่า currentYear ตามปุ่มที่คลิก
+            currentYear = year;
+
+            // เรียกฟังก์ชันแสดงผล
+            filterNewsletters();     // ตาราง
+            renderThumbnails();      // รูปภาพขนาดย่อ
+        });
+
+        yearTabsContainer.appendChild(button);
+    });
+
+    // เรียกฟังก์ชันตอนเริ่มต้นเพื่อแสดงปีล่าสุด
+    filterNewsletters();
+}
+
+    </script>
+</body>
+</html>
